@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.2)
-project(ESP8266oneM2M)
+project(ESP8266oneM2MDimmerSwitch)
 
 include(CMakeListsPrivate.txt)
 
