@@ -180,6 +180,7 @@ void Config::handleConfig(AsyncWebServerRequest *request) {
         page += "<br/>";
     }*/
 
+    //TODO validate input
     page += FPSTR(HTML_FORM_CHANGE);
     page += FPSTR(HTML_FORM_START);
     page += addParam("NETWORK:", "network", "network", "network", "15", _network, "text");
