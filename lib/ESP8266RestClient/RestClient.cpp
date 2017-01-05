@@ -8,15 +8,6 @@
 #define HTTP_DEBUG_PRINT(string)
 #endif
 
-RestClient::RestClient(){
-  host = "127.0.0.1";
-  port = 80;
-  num_headers = 0;
-  contentType = "application/x-www-form-urlencoded";	// default
-  use_https = false;
-  fingerprint = "";
-}
-
 RestClient::RestClient(const char* _host){
   host = _host;
   port = 80;

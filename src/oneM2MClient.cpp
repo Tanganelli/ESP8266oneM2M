@@ -6,10 +6,23 @@
 
 oneM2MClient::oneM2MClient(String user, String password, IPAddress ip, int port): user(user), password(password),
                                                                                ip(ip), port(port) {
-    client = RestClient(ip.toString().c_str(), port);
 }
 
 int oneM2MClient::createAE(String cseid, String appName) {
+#if DEBUG
+    Serial.print("createAE: ");
+    Serial.print(cseid);
+    Serial.print(", ");
+    Serial.println(appName);
+    Serial.print("ip: ");
+    Serial.println(ip.toString().c_str());
+    Serial.print("port: ");
+    Serial.println(port);
+#endif
+    char ip_buf[20];
+    String ipS = ip.toString();
+    ipS.toCharArray(ip_buf,20);
+    RestClient client(ip_buf, port);
     String header = "X-M2M-Origin: " + user + ":" + password;
     client.setHeader(header.c_str());
     client.setHeader("Accept: application/json");
@@ -27,6 +40,10 @@ int oneM2MClient::createAE(String cseid, String appName) {
 
 int oneM2MClient::createAE(String cseid, String appName, String *pString) {
     String header = "X-M2M-Origin: " + user + ":" + password;
+    char ip_buf[20];
+    String ipS = ip.toString();
+    ipS.toCharArray(ip_buf,20);
+    RestClient client(ip_buf, port);
     client.setHeader(header.c_str());
     client.setHeader("Accept: application/json");
     client.setContentType("application/xml;ty=2");
@@ -42,6 +59,10 @@ int oneM2MClient::createAE(String cseid, String appName, String *pString) {
 
 int oneM2MClient::createContainer(String cseid, String cseName, String appName, String containerName) {
     String header = "X-M2M-Origin: " + user + ":" + password;
+    char ip_buf[20];
+    String ipS = ip.toString();
+    ipS.toCharArray(ip_buf,20);
+    RestClient client(ip_buf, port);
     client.setHeader(header.c_str());
     client.setHeader("Accept: application/json");
     client.setContentType("application/xml;ty=3");
@@ -55,6 +76,10 @@ int oneM2MClient::createContainer(String cseid, String cseName, String appName, 
 
 int oneM2MClient::createContainer(String cseid, String cseName, String appName, String containerName, String *pString) {
     String header = "X-M2M-Origin: " + user + ":" + password;
+    char ip_buf[20];
+    String ipS = ip.toString();
+    ipS.toCharArray(ip_buf,20);
+    RestClient client(ip_buf, port);
     client.setHeader(header.c_str());
     client.setHeader("Accept: application/json");
     client.setContentType("application/xml;ty=3");
@@ -69,6 +94,10 @@ int oneM2MClient::createContainer(String cseid, String cseName, String appName, 
 int oneM2MClient::createContentInstance(String cseid, String cseName, String appName, String containerName,
                                         String value, String *pString) {
     String header = "X-M2M-Origin: " + user + ":" + password;
+    char ip_buf[20];
+    String ipS = ip.toString();
+    ipS.toCharArray(ip_buf,20);
+    RestClient client(ip_buf, port);
     client.setHeader(header.c_str());
     client.setHeader("Accept: application/json");
     client.setContentType("application/xml;ty=4");
@@ -86,6 +115,10 @@ int oneM2MClient::createContentInstance(String cseid, String cseName, String app
 int oneM2MClient::createSubscription(String cseid, String cseName, String appName, String containerName,
                                      String notificationURI) {
     String header = "X-M2M-Origin: " + user + ":" + password;
+    char ip_buf[20];
+    String ipS = ip.toString();
+    ipS.toCharArray(ip_buf,20);
+    RestClient client(ip_buf, port);
     client.setHeader(header.c_str());
     client.setHeader("Accept: application/json");
     client.setContentType("application/xml;ty=23");
@@ -102,6 +135,10 @@ int oneM2MClient::createSubscription(String cseid, String cseName, String appNam
 int oneM2MClient::createSubscription(String cseid, String cseName, String appName, String containerName,
                                      String notificationURI, String *pString) {
     String header = "X-M2M-Origin: " + user + ":" + password;
+    char ip_buf[20];
+    String ipS = ip.toString();
+    ipS.toCharArray(ip_buf,20);
+    RestClient client(ip_buf, port);
     client.setHeader(header.c_str());
     client.setHeader("Accept: application/json");
     client.setContentType("application/xml;ty=23");

@@ -5,7 +5,6 @@
 class RestClient {
 
   public:
-    RestClient();
     RestClient(const char* host);
     RestClient(const char* _host, int _port);
 

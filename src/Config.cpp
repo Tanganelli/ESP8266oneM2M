@@ -31,6 +31,14 @@ int Config::ReadConfig() {
                 DynamicJsonBuffer jsonBuffer;
                 JsonObject &json = jsonBuffer.parseObject(buf.get());
                 if (json.success()) {
+                    if(json.containsKey("portal_user"))
+                        _portal_user = json["portal_user"].as<String>();
+                    else
+                        return PARAMETERS_ERROR;
+                    if(json.containsKey("portal_pass"))
+                        _portal_pass = json["portal_pass"].as<String>();
+                    else
+                        return PARAMETERS_ERROR;
                     if(json.containsKey("network"))
                         _network = json["network"].as<String>();
                     else
@@ -53,6 +61,10 @@ int Config::ReadConfig() {
                         return PARAMETERS_ERROR;
                     if(json.containsKey("name"))
                         _cse_name = json["name"].as<String>();
+                    else
+                        return PARAMETERS_ERROR;
+                    if(json.containsKey("app"))
+                        _app_name = json["app"].as<String>();
                     else
                         return PARAMETERS_ERROR;
                     if(json.containsKey("dimmer"))
@@ -94,13 +106,33 @@ const String& Config::get_network_password() const {
     return _network_password;
 }
 
+void Config::handleChange(AsyncWebServerRequest *request) {
+    //TODO check confirm password
+    String page = FPSTR(HTML_HEAD);
+    page.replace("{v}", "Config Eagle Dimmer Switch");
+    // page += FPSTR(HTML_SCRIPT);
+    page += FPSTR(HTML_STYLE);
+    page += FPSTR(HTML_HEAD_END);
+    page += FPSTR(HTML_FORM_CHANGE_START);
+    page += addParam("USER:", "user", "user", "user", "15", _portal_user, "text");
+    page += addParam("PASSWORD:", "password", "password", "password", "15", _portal_pass, "password");
+    page += addParam("CONFIRM PASSWORD:", "confirm_password", "confirm_password", "confirm_password", "15", "", "password");
+    page += FPSTR(HTML_FORM_CHANGE_END);
+    // page += FPSTR(HTML_SCAN_LINK);
+
+    page += FPSTR(HTML_END);
+    request->send(200, "text/html", page);
+
+}
 void Config::handleConfig(AsyncWebServerRequest *request) {
     String page = FPSTR(HTML_HEAD);
-    page.replace("{v}", "Config ESP");
-    page += FPSTR(HTML_SCRIPT);
+    page.replace("{v}", "Config Eagle Dimmer Switch");
+   // page += FPSTR(HTML_SCRIPT);
     page += FPSTR(HTML_STYLE);
     page += FPSTR(HTML_HEAD_END);
 
+    /*WiFi.mode(WIFI_AP_STA);
+    delay(100);
     int n = WiFi.scanNetworks();
     if (n == 0) {
         page += F("No networks found. Refresh to scan again.");
@@ -146,28 +178,31 @@ void Config::handleConfig(AsyncWebServerRequest *request) {
             page += item;
         }
         page += "<br/>";
-    }
+    }*/
 
+    page += FPSTR(HTML_FORM_CHANGE);
     page += FPSTR(HTML_FORM_START);
-
-    page += addParam("CSE IP:", "ip", "ip", "cseIP", "15", _cse_ip.toString());
-    page += addParam("CSE PORT:", "port", "port", "csePort", "5", String(_cse_port));
-    page += addParam("CSE ID:", "id", "id", "cseId", "32", _cse_id);
-    page += addParam("CSE NAME:", "name", "name", "cseName", "32", _cse_name);
-    page += addParam("CSE USER:", "user", "user", "user", "32", _user);
-    page += addParam("CSE PASSWORD:", "password", "password", "pass", "32", _pass);
-    page += addParam("DIMMER CONTAINER NAME:", "dimmer", "dimmer", "dimmerName", "32", _dimmer_name);
-    page += addParam("SWITCH CONTAINER NAME:", "switch", "switch", "switchName", "32", _switch_name);
+    page += addParam("NETWORK:", "network", "network", "network", "15", _network, "text");
+    page += addParam("NETWORK PASSWORD:", "network_password", "network_password", "network_password", "15", _network_password, "password");
+    page += addParam("CSE IP:", "ip", "ip", "cseIP", "15", _cse_ip.toString(), "text");
+    page += addParam("CSE PORT:", "port", "port", "csePort", "5", String(_cse_port), "text");
+    page += addParam("CSE ID:", "id", "id", "cseId", "32", _cse_id, "text");
+    page += addParam("CSE NAME:", "name", "name", "cseName", "32", _cse_name, "text");
+    page += addParam("CSE USER:", "user", "user", "user", "32", _user, "text");
+    page += addParam("CSE PASSWORD:", "password", "password", "pass", "32", _pass, "password");
+    page += addParam("APPLICATION NAME:", "app", "app", "appName", "32", _app_name, "text");
+   /* page += addParam("DIMMER CONTAINER NAME:", "dimmer", "dimmer", "dimmerName", "32", _dimmer_name, "text");
+    page += addParam("SWITCH CONTAINER NAME:", "switch", "switch", "switchName", "32", _switch_name, "text");*/
 
     page += FPSTR(HTML_FORM_END);
-    page += FPSTR(HTML_SCAN_LINK);
+   // page += FPSTR(HTML_SCAN_LINK);
 
     page += FPSTR(HTML_FORM_RESET);
     page += FPSTR(HTML_END);
     request->send(200, "text/html", page);
 }
 
-String Config::addParam(String label, String i, String n, String p, String l, String v) {
+String Config::addParam(String label, String i, String n, String p, String l, String v, String t) {
     String pitem = FPSTR(HTML_FORM_PARAM);
     pitem.replace("{label}", label);
     pitem.replace("{i}", i);
@@ -175,16 +210,39 @@ String Config::addParam(String label, String i, String n, String p, String l, St
     pitem.replace("{p}", p);
     pitem.replace("{l}", l);
     pitem.replace("{v}", v);
+    pitem.replace("{t}", t);
     return pitem;
 }
 
+void Config::handleChangeSave(AsyncWebServerRequest *request) {
+    if(request->hasParam("user")){
+        AsyncWebParameter* p = request->getParam("user");
+        _portal_user = p->value();
+    }
+    if(request->hasParam("password")){
+        AsyncWebParameter* p = request->getParam("password");
+        _portal_pass = p->value();
+    }
+    int check = WriteConfig();
+    String page = FPSTR(HTML_HEAD);
+    page.replace("{v}", "Config ESP");
+    //page += FPSTR(HTML_SCRIPT);
+    page += FPSTR(HTML_STYLE);
+    page += FPSTR(HTML_HEAD_END);
+    if(check == 0)
+        page += FPSTR(HTML_SAVED);
+    else
+        page += FPSTR(HTML_SAVED_ERROR);
+    page += FPSTR(HTML_END);
+    request->send(200, "text/html", page);
+}
 void Config::handleSave(AsyncWebServerRequest *request) {
-    if(request->hasParam("s")){
-        AsyncWebParameter* p = request->getParam("s");
+    if(request->hasParam("network")){
+        AsyncWebParameter* p = request->getParam("network");
         _network = p->value();
     }
-    if(request->hasParam("p")){
-        AsyncWebParameter* p = request->getParam("p");
+    if(request->hasParam("network_password")){
+        AsyncWebParameter* p = request->getParam("network_password");
         _network_password = p->value();
     }
     if(request->hasParam("ip")){
@@ -216,7 +274,7 @@ void Config::handleSave(AsyncWebServerRequest *request) {
         _pass = p->value();
     }
 
-    if(request->hasParam("dimmer")){
+    /*if(request->hasParam("dimmer")){
         AsyncWebParameter* p = request->getParam("dimmer");
         _dimmer_name = p->value();
     }
@@ -224,12 +282,17 @@ void Config::handleSave(AsyncWebServerRequest *request) {
     if(request->hasParam("switch")){
         AsyncWebParameter* p = request->getParam("switch");
         _switch_name = p->value();
+    }*/
+
+    if(request->hasParam("app")){
+        AsyncWebParameter* p = request->getParam("app");
+        _app_name = p->value();
     }
 
     int check = WriteConfig();
     String page = FPSTR(HTML_HEAD);
     page.replace("{v}", "Config ESP");
-    page += FPSTR(HTML_SCRIPT);
+    //page += FPSTR(HTML_SCRIPT);
     page += FPSTR(HTML_STYLE);
     page += FPSTR(HTML_HEAD_END);
     if(check == 0)
@@ -250,7 +313,6 @@ void Config::handleReset(AsyncWebServerRequest *request) {
     page += FPSTR(HTML_END);
     request->send(200, "text/html", page);
     DelConfig();
-    ESP.reset();
 }
 
 int Config::WriteConfig() {
@@ -265,8 +327,11 @@ int Config::WriteConfig() {
         json["pass"] = _pass;
         json["dimmer"] = _dimmer_name;
         json["switch"] = _switch_name;
+        json["app"] = _app_name;
         json["network"] = _network;
         json["network_password"] = _network_password;
+        json["portal_user"] = _portal_user;
+        json["portal_pass"] = _portal_pass;
 
         File configFile = SPIFFS.open(CONFIG_FILE, "w");
         if (!configFile) {

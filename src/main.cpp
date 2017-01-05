@@ -10,12 +10,15 @@
 #include "oneM2MClient.h"
 
 #define NOTIFICATION_PORT 80
+#define DEBUG 0
 
 Config config;
 std::unique_ptr<AsyncWebServer> WebServer;
 String body;
 String Dimmer_rn;
 String Switch_rn;
+bool configured = false;
+bool reset = false;
 
 int DimmerValue = -1;
 int SwitchState = -1;
@@ -151,21 +154,35 @@ void onBody(AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t in
 }
 
 void handleConfig(AsyncWebServerRequest *request){
+    if(!request->authenticate(config.get_portal_user().c_str(), config.get_portal_pass().c_str()))
+        return request->requestAuthentication();
     config.handleConfig(request);
 }
 
 void handleSave(AsyncWebServerRequest *request){
     config.handleSave(request);
+    reset = true;
 }
 
 void handleReset(AsyncWebServerRequest *request){
     config.handleReset(request);
+    reset = true;
+}
+
+void handleChange(AsyncWebServerRequest *request){
+    config.handleChange(request);
+}
+
+void handleChangeSave(AsyncWebServerRequest *request){
+    config.handleChangeSave(request);
 }
 
 void setup(){
     Serial.begin(115200);
-    Serial.println("SETUP!");
     int ret = config.ReadConfig();
+//#if DEBUG
+    Serial.println("SETUP!");
+
     if(ret == PARSING_FAILED){
         Serial.println("Failed to load json config");
     } else if (ret == ERROR_OPENING) {
@@ -177,29 +194,47 @@ void setup(){
     } else if (ret == PARAMETERS_ERROR) {
         Serial.println("Failed to parse parameters");
     }
+//#endif
     if(ret != 0){
         // Start AP
-        WiFi.mode(WIFI_AP_STA);
         String network = "Eagle" + String(ESP.getChipId());
+        //WiFi.mode(WIFI_AP_STA);
         WiFi.softAPConfig(IPAddress(192,168,0,1), IPAddress(192,168,0,1), IPAddress(255,255,255,0));
         WiFi.softAP(network.c_str());
         delay(500); // Without delay I've seen the IP address blank
+//#if DEBUG
         Serial.print("AP MODE, address: ");
         Serial.println(WiFi.softAPIP());
+//#endif
+        cleanSerial();
+        Serial.print("ap\n");
     } else {
         // Connect to Network
-        WiFi.mode(WIFI_STA);
+        configured = true;
         if (WiFi.status() != WL_CONNECTED) {
             WiFi.begin(config.get_network().c_str(), config.get_network_password().c_str());
-            WiFi.waitForConnectResult();
+/*            if(WiFi.waitForConnectResult() != WL_CONNECTED){
+                config.DelConfig();
+                ESP.reset();
+            }*/
+//#if DEBUG
+            while (WiFi.status() != WL_CONNECTED) {
+                delay(500);
+
+                Serial.print(".");
+
+            }
             Serial.print("STA MODE, address: ");
             Serial.println(WiFi.localIP());
+//#endif
         }
     }
     WebServer.reset(new AsyncWebServer(NOTIFICATION_PORT));
     WebServer->on("/", handleConfig);
     WebServer->on("/configSave", handleSave);
     WebServer->on("/reset", handleReset);
+    WebServer->on("/change", handleChange);
+    WebServer->on("/changeSave", handleChangeSave);
     WebServer->onRequestBody(onBody);
 
     WebServer->begin();
@@ -207,18 +242,21 @@ void setup(){
     String notificationDimmerUri("http://" + WiFi.localIP().toString() + ":" + NOTIFICATION_PORT + "/notificationDimmer");
     String notificationSwitchUri("http://" + WiFi.localIP().toString() + ":" + NOTIFICATION_PORT + "/notificationSwitch");
 
-    oneM2MClient client(config.get_user(), config.get_pass(), config.get_cse_ip(), config.get_cse_port());
-    int statusCode = client.createAE(config.get_cse_id(), "EAGLE SWITCH DIMMER");
+    if(configured){
+        oneM2MClient client(config.get_user(), config.get_pass(), config.get_cse_ip(), config.get_cse_port());
+        int statusCode = client.createAE(config.get_cse_id(), config.get_app_name());
 
-    statusCode = client.createContainer(config.get_cse_id(), config.get_cse_name(), "EAGLE SWITCH DIMMER", config.get_dimmer_name());
+        statusCode = client.createContainer(config.get_cse_id(), config.get_cse_name(), config.get_app_name(), config.get_dimmer_name());
 
-    statusCode = client.createContainer(config.get_cse_id(), config.get_cse_name(), "EAGLE SWITCH DIMMER", config.get_switch_name());
+        statusCode = client.createContainer(config.get_cse_id(), config.get_cse_name(), config.get_app_name(), config.get_switch_name());
 
-    statusCode = client.createSubscription(config.get_cse_id(), config.get_cse_name(), "EAGLE SWITCH DIMMER",
-                                           config.get_dimmer_name(), notificationDimmerUri);
+        statusCode = client.createSubscription(config.get_cse_id(), config.get_cse_name(), config.get_app_name(),
+                                               config.get_dimmer_name(), notificationDimmerUri);
 
-    statusCode = client.createSubscription(config.get_cse_id(), config.get_cse_name(), "EAGLE SWITCH DIMMER",
-                                           config.get_switch_name(), notificationSwitchUri);
+        statusCode = client.createSubscription(config.get_cse_id(), config.get_cse_name(), config.get_app_name(),
+                                               config.get_switch_name(), notificationSwitchUri);
+    }
+
 }
 
 void updateDimmer(){
@@ -228,7 +266,7 @@ void updateDimmer(){
     if(temp != DimmerValue) {
         DimmerValue = temp;
 #if DEBUG
-        Serial.print(value, DEC);
+        Serial.print(DimmerValue, DEC);
 #endif
         String newVal = String(DimmerValue);
 
@@ -241,7 +279,7 @@ void updateDimmer(){
                                    "      &lt;/obj&gt;\n");
         String contentInstanceDimmerResponse;
         oneM2MClient client(config.get_user(), config.get_pass(), config.get_cse_ip(), config.get_cse_port());
-        client.createContentInstance(config.get_cse_id(), config.get_cse_name(), "EAGLE SWITCH DIMMER",
+        client.createContentInstance(config.get_cse_id(), config.get_cse_name(), config.get_app_name(),
                                      config.get_dimmer_name(), valueDimmer,
                               &contentInstanceDimmerResponse);
         DynamicJsonBuffer jsonBufferCinDimmer;
@@ -261,7 +299,7 @@ void updateSwitch(){
     if(temp != SwitchState) {
         SwitchState = temp;
 #if DEBUG
-        Serial.print(lastButtonState, DEC);
+        Serial.print(SwitchState, DEC);
 #endif
         if (SwitchState == 1)
             newVal = "on";
@@ -272,7 +310,7 @@ void updateSwitch(){
                                    "      &lt;/obj&gt;\n");
         String contentInstanceSwitchResponse;
         oneM2MClient client(config.get_user(), config.get_pass(), config.get_cse_ip(), config.get_cse_port());
-        client.createContentInstance(config.get_cse_id(), config.get_cse_name(), "EAGLE SWITCH DIMMER",
+        client.createContentInstance(config.get_cse_id(), config.get_cse_name(), config.get_app_name(),
                                      config.get_switch_name(), valueSwitch,
                                      &contentInstanceSwitchResponse);
         DynamicJsonBuffer jsonBufferCinSwitch;
@@ -288,7 +326,13 @@ void loop(){
 #if DEBUG
     Serial.println("LOOP");
 #endif
-    updateDimmer();
-    updateSwitch();
-    delay(250);
+    if(configured){
+        updateDimmer();
+        updateSwitch();
+        delay(250);
+    }
+    if(reset){
+        delay(2000);
+        ESP.reset();
+    }
 }

@@ -14,7 +14,6 @@ private:
     String password;
     IPAddress ip;
     int port;
-    RestClient client;
 
 public:
     oneM2MClient(String user, String password, IPAddress ip, int port);
