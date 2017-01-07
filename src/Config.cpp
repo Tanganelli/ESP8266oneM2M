@@ -110,13 +110,13 @@ void Config::handleChange(AsyncWebServerRequest *request) {
     //TODO check confirm password
     String page = FPSTR(HTML_HEAD);
     page.replace("{v}", "Config Eagle Dimmer Switch");
-    // page += FPSTR(HTML_SCRIPT);
+    page += FPSTR(HTML_SCRIPT);
     page += FPSTR(HTML_STYLE);
     page += FPSTR(HTML_HEAD_END);
     page += FPSTR(HTML_FORM_CHANGE_START);
-    page += addParam("USER:", "user", "user", "user", "15", _portal_user, "text");
-    page += addParam("PASSWORD:", "password", "password", "password", "15", _portal_pass, "password");
-    page += addParam("CONFIRM PASSWORD:", "confirm_password", "confirm_password", "confirm_password", "15", "", "password");
+    page += addParam("USER:", "user", "user", "user", "200", _portal_user, "text",  "Only characters, numbers, _ and - are allowed", "pattern='[A-Za-z0-9_-]*'");
+    page += addParam("PASSWORD:", "password", "password", "password", "200", _portal_pass, "password",  "Only characters, numbers, _ and - are allowed", "pattern='[A-Za-z0-9_-]*'");
+    page += addParam("CONFIRM PASSWORD:", "confirm_password", "confirm_password", "confirm_password", "200", "", "password",  "Only characters, numbers, _ and - are allowed", "pattern='[A-Za-z0-9_-]*'");
     page += FPSTR(HTML_FORM_CHANGE_END);
     // page += FPSTR(HTML_SCAN_LINK);
 
@@ -127,7 +127,7 @@ void Config::handleChange(AsyncWebServerRequest *request) {
 void Config::handleConfig(AsyncWebServerRequest *request) {
     String page = FPSTR(HTML_HEAD);
     page.replace("{v}", "Config Eagle Dimmer Switch");
-   // page += FPSTR(HTML_SCRIPT);
+    page += FPSTR(HTML_SCRIPT);
     page += FPSTR(HTML_STYLE);
     page += FPSTR(HTML_HEAD_END);
 
@@ -183,15 +183,15 @@ void Config::handleConfig(AsyncWebServerRequest *request) {
     //TODO validate input
     page += FPSTR(HTML_FORM_CHANGE);
     page += FPSTR(HTML_FORM_START);
-    page += addParam("NETWORK:", "network", "network", "network", "15", _network, "text");
-    page += addParam("NETWORK PASSWORD:", "network_password", "network_password", "network_password", "15", _network_password, "password");
-    page += addParam("CSE IP:", "ip", "ip", "cseIP", "15", _cse_ip.toString(), "text");
-    page += addParam("CSE PORT:", "port", "port", "csePort", "5", String(_cse_port), "text");
-    page += addParam("CSE ID:", "id", "id", "cseId", "32", _cse_id, "text");
-    page += addParam("CSE NAME:", "name", "name", "cseName", "32", _cse_name, "text");
-    page += addParam("CSE USER:", "user", "user", "user", "32", _user, "text");
-    page += addParam("CSE PASSWORD:", "password", "password", "pass", "32", _pass, "password");
-    page += addParam("APPLICATION NAME:", "app", "app", "appName", "32", _app_name, "text");
+    page += addParam("NETWORK:", "network", "network", "network", "200", _network, "text", "Network SSID", "");
+    page += addParam("NETWORK PASSWORD:", "network_password", "network_password", "network_password", "200", _network_password, "password", "Network Password", "");
+    page += addParam("CSE IP:", "ip", "ip", "cseIP", "15", _cse_ip.toString(), "text", "IP is not valid", "pattern='^(25[0-5]|2[0-4][0-9]|[1][0-9]?[0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$'");
+    page += addParam("CSE PORT:", "port", "port", "csePort", "5", String(_cse_port), "text", "Port must be a number", "pattern='[0-9]*'");
+    page += addParam("CSE ID:", "id", "id", "cseId", "32", _cse_id, "text", "Only characters, numbers, _ and - are allowed", "pattern='[A-Za-z0-9_-]*'");
+    page += addParam("CSE NAME:", "name", "name", "cseName", "32", _cse_name, "text",  "Only characters, numbers, _ and - are allowed", "pattern='[A-Za-z0-9_-]*'");
+    page += addParam("CSE USER:", "user", "user", "user", "32", _user, "text",  "Only characters, numbers, _ and - are allowed", "pattern='[A-Za-z0-9_-]*'");
+    page += addParam("CSE PASSWORD:", "password", "password", "pass", "32", _pass, "password",  "Only characters, numbers, _ and - are allowed", "pattern='[A-Za-z0-9_-]*'");
+    page += addParam("APPLICATION NAME:", "app", "app", "appName", "32", _app_name, "text",  "Only characters, numbers, _ and - are allowed", "pattern='[A-Za-z0-9_-]*'");
    /* page += addParam("DIMMER CONTAINER NAME:", "dimmer", "dimmer", "dimmerName", "32", _dimmer_name, "text");
     page += addParam("SWITCH CONTAINER NAME:", "switch", "switch", "switchName", "32", _switch_name, "text");*/
 
@@ -203,7 +203,7 @@ void Config::handleConfig(AsyncWebServerRequest *request) {
     request->send(200, "text/html", page);
 }
 
-String Config::addParam(String label, String i, String n, String p, String l, String v, String t) {
+String Config::addParam(String label, String i, String n, String p, String l, String v, String t, String title, String pattern) {
     String pitem = FPSTR(HTML_FORM_PARAM);
     pitem.replace("{label}", label);
     pitem.replace("{i}", i);
@@ -212,6 +212,8 @@ String Config::addParam(String label, String i, String n, String p, String l, St
     pitem.replace("{l}", l);
     pitem.replace("{v}", v);
     pitem.replace("{t}", t);
+    pitem.replace("{title}", title);
+    pitem.replace("{pattern}", pattern);
     return pitem;
 }
 

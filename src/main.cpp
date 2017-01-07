@@ -213,11 +213,11 @@ void setup(){
         configured = true;
         if (WiFi.status() != WL_CONNECTED) {
             WiFi.begin(config.get_network().c_str(), config.get_network_password().c_str());
-/*            if(WiFi.waitForConnectResult() != WL_CONNECTED){
+            if(WiFi.waitForConnectResult() != WL_CONNECTED){
                 config.DelConfig();
                 ESP.reset();
-            }*/
-//#if DEBUG
+            }
+#if DEBUG
             while (WiFi.status() != WL_CONNECTED) {
                 delay(500);
 
@@ -226,7 +226,7 @@ void setup(){
             }
             Serial.print("STA MODE, address: ");
             Serial.println(WiFi.localIP());
-//#endif
+#endif
         }
     }
     WebServer.reset(new AsyncWebServer(NOTIFICATION_PORT));
